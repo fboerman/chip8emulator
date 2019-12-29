@@ -15,11 +15,12 @@ func main() {
 	if err != nil {
 		fmt.Println("[!] Error when loading ROM: ", err)
 	}
-
+	fmt.Println("[>] Starting CPU loop")
 	for true {
 		err := chip8cpu.Tick(cpu)
 		if err != nil {
-			fmt.Println("[!] CPU has thrown an error: ", err)
+			fmt.Print("[!] CPU has thrown an error: ", err)
+			fmt.Printf(" at PC 0x%X\n", cpu.Mem.PC)
 			break
 		}
 		time.Sleep(16666 * time.Microsecond) // T=1/60=16 2/3 ms for 60Hz

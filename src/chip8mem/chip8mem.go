@@ -3,25 +3,26 @@ package chip8mem
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"math"
 	"os"
 )
 
 // some constants from definition
-const MEMSIZE = 4096 // main memory size
-const NUMREGS = 16 // how many general purpose 8-bit registers are available
-const STACKSIZE = 16 // ammount of 16-bits registers the stack is composed of
+const MEMSIZE = 4096   // main memory size
+const NUMREGS = 16     // how many general purpose 8-bit registers are available
+const STACKSIZE = 16   // ammount of 16-bits registers the stack is composed of
 const MEMSTART = 0x200 // start address of all memory
 
 type Memory struct {
-	mem [MEMSIZE]uint8
-	regs [NUMREGS]uint8
-	stack [STACKSIZE]uint16
-	PC uint16
-	SP uint8
-	T_delay uint8 // delay timer
-	T_sound uint8 // sound timer
-	I uint16 // index register
+	mem     [MEMSIZE]uint8
+	regs    [NUMREGS]uint8
+	stack   [STACKSIZE]uint16
+	PC      uint16
+	SP      uint8
+	T_delay uint8  // delay timer
+	T_sound uint8  // sound timer
+	I       uint16 // index register
 }
 
 // initialize empty memory
@@ -90,7 +91,7 @@ func PopStack(mem *Memory) (addr uint16, err error) {
 // add address to the stack and adjust stack pointer
 // return stackoverflow error if stack is full
 func AddStack(mem *Memory, addr uint16) (err error) {
-	if mem.SP == STACKSIZE - 1 {
+	if mem.SP == STACKSIZE-1 {
 		// SP already points to top of stack
 		return errors.New("Stack overflow")
 	}
@@ -98,4 +99,26 @@ func AddStack(mem *Memory, addr uint16) (err error) {
 	mem.stack[mem.SP] = addr
 
 	return
+}
+
+// get pointer to register
+// return error if invalid register number
+func GetReg(mem *Memory, x uint8) (v *uint8, err error) {
+	if x >= NUMREGS {
+		return nil, errors.New(fmt.Sprintf("Invalid reg number %d", x))
+	}
+	v = &(mem.regs[x])
+	return
+
+}
+
+//write byte to address in memory
+func WriteByte(mem *Memory, addr uint16, byte uint8) error {
+	if addr >= MEMSIZE || addr < MEMSTART {
+		return errors.New(fmt.Sprintf("Invalid address 0x(%X) to write to memory", addr))
+	}
+
+	mem.mem[addr] = byte
+
+	return nil
 }
