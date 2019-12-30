@@ -68,7 +68,9 @@ func Tick(cpu *Cpu) error {
 			if err != nil {
 				return err
 			}
-			cpu.Mem.PC = new_addr
+			// add 2 here so that we go to the instruction after the subroutine otherwise
+			// we get into an infinite loop of entering and exiting subroutine
+			cpu.Mem.PC = new_addr + 2
 		default:
 			return errors.New(fmt.Sprintf("Malformed instruction (0x%X), wrong functioncode (0x%X) with opcode (0x%X)", instr, functioncode, opcode)) // TODO: make this custom error type
 		}

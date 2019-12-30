@@ -71,6 +71,11 @@ func CloseVideo(video *Video) {
 func DisplaySprite(video *Video, sprite []uint8, x uint8, y uint8) (collision uint8) {
 	for z, b := range sprite {
 		for i := 0; i < 8; i++ {
+			// it is possible for the sprite byte to overlap outside the frame, simply ignore those bits
+			// this happens when for example a sprite draws a line at x=WIDTH-1 with byte 0x80 = 1000 0000
+			if int(x)+i >= WIDTH {
+				break
+			}
 			if video.pixels[int(y)+z][int(x)+i] {
 				collision = 1
 			}
