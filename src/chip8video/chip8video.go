@@ -30,6 +30,7 @@ func Clear(video *Video) {
 	}
 	video.renderer.SetDrawColor(0, 0, 0, 0)
 	video.renderer.Clear()
+	video.renderer.Present()
 }
 
 // initialize SDL system and window
@@ -67,11 +68,11 @@ func CloseVideo(video *Video) {
 	sdl.Quit()
 }
 
-func DisplaySprite(video *Video, sprite []uint8, x uint8, y uint8) (collision bool) {
+func DisplaySprite(video *Video, sprite []uint8, x uint8, y uint8) (collision uint8) {
 	for z, b := range sprite {
 		for i := 0; i < 8; i++ {
 			if video.pixels[int(y)+z][int(x)+i] {
-				collision = true
+				collision = 1
 			}
 			// XOR of bool is simply A != B
 			video.pixels[int(y)+z][int(x)+i] = video.pixels[int(y)+z][int(x)+i] != (b&(1<<(7-i)) != 0)

@@ -29,6 +29,7 @@ func CreateCpu() *Cpu {
 //n or nibble - A 4-bit value, the lowest 4 bits of the instruction
 //x - A 4-bit value, the lower 4 bits of the high byte of the instruction
 //y - A 4-bit value, the upper 4 bits of the low byte of the instruction
+//n - A 4-bit value, the lower 4 bits of the low byte of the instruction
 //kk or byte - An 8-bit value, the lowest 8 bits of the instruction
 func Tick(cpu *Cpu) error {
 	// load current instruction and extract its upper 4 bits as opcode
@@ -38,11 +39,13 @@ func Tick(cpu *Cpu) error {
 	//select 12 lower bits (0xFFF = 0000 1111 1111 1111)
 	var nnn uint16 = instr & 0xFFF
 	// lower 4 bits of high byte (0xF = 1111)
-	var x uint8 = uint8(instr>>8)&0xF
+	var x uint8 = uint8(instr>>8) & 0xF
 	// upper 4 bits of low byte
 	y := uint8((instr >> 4) & 0xF)
 	// get value encoded in instruction in lower byte so bitmask with ( 0xFF = 1111 1111)
 	var kk uint8 = uint8(instr & 0xFF)
+	// lower 4 bits of the low byte of the instruction
+	var n uint8 = uint8(instr & 0xF)
 
 	// act on opcode
 	switch opcode {
@@ -246,7 +249,7 @@ func Tick(cpu *Cpu) error {
 			return err
 		}
 
-		if *Vx == *Vy {
+		if *Vx != *Vy {
 			cpu.Mem.PC += 4
 		} else {
 			cpu.Mem.PC += 2
@@ -277,10 +280,21 @@ func Tick(cpu *Cpu) error {
 		cpu.Mem.PC += 2
 	case 0xD:
 		// DRW Vx, Vy, nibble
-		// Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
+		// Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision
 
-		// TBI
-		return errors.New(fmt.Sprintf("Instruction 0x(%X) has non implemented opcode 0x(%X)", instr, opcode))
+		Vx, err := chip8mem.GetReg(cpu.Mem, x)
+		if err != nil {
+			return err
+		}
+		Vy, err := chip8mem.GetReg(cpu.Mem, y)
+		if err != nil {
+			return err
+		}
+		sprite := chip8mem.LoadnBytes(cpu.Mem, cpu.Mem.I, int(n))
+		VF, _ := chip8mem.GetReg(cpu.Mem, 0xF)
+		*VF = chip8video.DisplaySprite(cpu.Video, sprite, *Vx, *Vy)
+
+		cpu.Mem.PC += 2
 	case 0xE:
 		// SKP Vx
 		// Skip next instruction if key with the value of Vx is not pressed
@@ -326,8 +340,9 @@ func Tick(cpu *Cpu) error {
 			// LD F, Vx
 			// Set I = location of sprite for digit Vx
 
-			// TBI
-			return errors.New(fmt.Sprintf("Instruction 0x(%X) has non implemented opcode 0x(%X) and functioncode 0x(%X)", instr, opcode, functioncode))
+			cpu.Mem.I = uint16(chip8mem.FONTSTART + *Vx*5)
+
+			cpu.Mem.PC += 2
 		case 0x33:
 			// LD B, Vx
 			// Store BCD representation of Vx in memory locations I, I+1, and I+2
@@ -336,21 +351,21 @@ func Tick(cpu *Cpu) error {
 
 			temp := *Vx
 			// ones-place
-			err := chip8mem.WriteByte(cpu.Mem, cpu.Mem.I+2, temp % 10)
+			err := chip8mem.WriteByte(cpu.Mem, cpu.Mem.I+2, temp%10)
 			if err != nil {
 				return err
 			}
 			temp /= 10
 
 			// tens-place
-			err = chip8mem.WriteByte(cpu.Mem, cpu.Mem.I+1, temp % 10)
+			err = chip8mem.WriteByte(cpu.Mem, cpu.Mem.I+1, temp%10)
 			if err != nil {
 				return err
 			}
 			temp /= 10
 
 			// hundreds-place
-			err = chip8mem.WriteByte(cpu.Mem, cpu.Mem.I, temp % 10)
+			err = chip8mem.WriteByte(cpu.Mem, cpu.Mem.I, temp%10)
 			if err != nil {
 				return err
 			}
@@ -362,9 +377,9 @@ func Tick(cpu *Cpu) error {
 				return errors.New(fmt.Sprintf("Invalid reg number %d", x))
 			}
 
-			for i := 0; i < int(x)+1;i++ {
+			for i := 0; i < int(x)+1; i++ {
 				V, _ := chip8mem.GetReg(cpu.Mem, uint8(i))
-				err := chip8mem.WriteByte(cpu.Mem, cpu.Mem.I + uint16(i), *V)
+				err := chip8mem.WriteByte(cpu.Mem, cpu.Mem.I+uint16(i), *V)
 				if err != nil {
 					return err
 				}
@@ -376,16 +391,16 @@ func Tick(cpu *Cpu) error {
 			if x >= chip8mem.NUMREGS {
 				return errors.New(fmt.Sprintf("Invalid reg number %d", x))
 			}
-			if cpu.Mem.I + uint16(x) > chip8mem.MEMSIZE {
-				return errors.New(fmt.Sprintf("Invalid address 0x(%X) to read to memory",  cpu.Mem.I + uint16(x)))
+			if cpu.Mem.I+uint16(x) > chip8mem.MEMSIZE {
+				return errors.New(fmt.Sprintf("Invalid address 0x(%X) to read to memory", cpu.Mem.I+uint16(x)))
 			}
 			if cpu.Mem.I < chip8mem.MEMSTART {
-				return errors.New(fmt.Sprintf("Invalid address 0x(%X) to read to memory",  cpu.Mem.I))
+				return errors.New(fmt.Sprintf("Invalid address 0x(%X) to read to memory", cpu.Mem.I))
 			}
 
-			for i := 0; i < int(x)+1;i++ {
+			for i := 0; i < int(x)+1; i++ {
 				V, _ := chip8mem.GetReg(cpu.Mem, uint8(i))
-				*V = chip8mem.LoadByte(cpu.Mem, cpu.Mem.I + uint16(i))
+				*V = chip8mem.LoadByte(cpu.Mem, cpu.Mem.I+uint16(i))
 			}
 		}
 		cpu.Mem.PC += 2
