@@ -408,5 +408,18 @@ func Tick(cpu *Cpu) error {
 		return errors.New(fmt.Sprintf("Instruction 0x(%X), with non recognized opcode 0x(%X)", instr, opcode))
 	}
 
+	// decrease the timer and sound timers
+	if cpu.Mem.T_sound > 0 {
+		cpu.Mem.T_sound--
+	}
+	if cpu.Mem.T_delay > 0 {
+		cpu.Mem.T_delay--
+	}
+
 	return nil
+}
+
+func DebugDump(cpu *Cpu) {
+	var instr uint16 = chip8mem.LoadInstr(cpu.Mem, cpu.Mem.PC)
+	fmt.Printf("[d]: 0x%X \t 0x%X \n", cpu.Mem.PC, instr)
 }
