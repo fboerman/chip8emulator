@@ -67,13 +67,29 @@ func CloseVideo(video *Video) {
 	sdl.Quit()
 }
 
+func DisplaySprite(video *Video, sprite []uint8, x uint8, y uint8) (collision bool) {
+	for z, b := range sprite {
+		for i := 0; i < 8; i++ {
+			if video.pixels[int(y)+z][int(x)+i] {
+				collision = true
+			}
+			// XOR of bool is simply A != B
+			video.pixels[int(y)+z][int(x)+i] = video.pixels[int(y)+z][int(x)+i] != (b&(1<<(7-i)) != 0)
+		}
+	}
+	video.Dirty = true
+	return
+}
+
 // render the current pixelbuffer to the texture
 func Render(video *Video) {
-	//updatebuffer(video)
+	if !video.Dirty {
+		return
+	}
+
 	video.renderer.SetDrawColor(0, 0, 0, 0)
 	video.renderer.Clear()
-	//video.tex.Update(nil, video.pixelbuffer, WIDTH*SCALE*3)
-	//video.renderer.Copy(video.tex, nil, nil)
+
 	var rects []sdl.Rect
 	for y := 0; y < HEIGTH; y++ {
 		for x := 0; x < WIDTH; x++ {
@@ -90,21 +106,31 @@ func Render(video *Video) {
 	video.renderer.SetDrawColor(255, 255, 255, 255)
 	video.renderer.FillRects(rects)
 	video.renderer.Present()
+	video.Dirty = false
 }
 
 // render somethings on screen as test
-func Test(video *Video) {
-	video.pixels[0][0] = true
-	video.pixels[0][1] = true
-	video.pixels[0][2] = true
-	video.pixels[0][3] = true
-	video.pixels[1][0] = true
-	video.pixels[2][0] = true
-	video.pixels[2][1] = true
-	video.pixels[2][2] = true
-	video.pixels[3][0] = true
-	video.pixels[4][0] = true
-	video.pixels[5][0] = true
+func Test(video *Video, tcase int, sprite []uint8) {
+	Clear(video)
+	switch tcase {
+	case 1:
+		// manually draw a F
+		video.pixels[0][0] = true
+		video.pixels[0][1] = true
+		video.pixels[0][2] = true
+		video.pixels[0][3] = true
+		video.pixels[1][0] = true
+		video.pixels[2][0] = true
+		video.pixels[2][1] = true
+		video.pixels[2][2] = true
+		video.pixels[3][0] = true
+		video.pixels[4][0] = true
+		video.pixels[5][0] = true
+	case 2:
+		DisplaySprite(video, sprite, 0, 0)
+	default:
+		return
+	}
 
 	video.Dirty = true
 }

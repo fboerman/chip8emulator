@@ -13,6 +13,7 @@ const MEMSIZE = 4096   // main memory size
 const NUMREGS = 16     // how many general purpose 8-bit registers are available
 const STACKSIZE = 16   // ammount of 16-bits registers the stack is composed of
 const MEMSTART = 0x200 // start address of all memory
+const FONTSTART = 0x50 // start address for fonts
 
 type Memory struct {
 	mem     [MEMSIZE]uint8
@@ -58,10 +59,11 @@ func LoadROM(mem *Memory, fname string) error {
 	return nil
 }
 
-// load 2 seperate bytes from memory
-func Load2Bytes(mem *Memory, addr uint16) (data [2]uint8) {
-	data[0] = mem.mem[addr]
-	data[1] = mem.mem[addr+1]
+// load n seperate bytes from memory
+func LoadnBytes(mem *Memory, addr uint16, n int) (data []uint8) {
+	for i := 0; i < n; i++ {
+		data = append(data, mem.mem[addr+uint16(i)])
+	}
 
 	return
 }
@@ -121,4 +123,31 @@ func WriteByte(mem *Memory, addr uint16, byte uint8) error {
 	mem.mem[addr] = byte
 
 	return nil
+}
+
+// load the standard sprites for fonts
+func LoadFonts(mem *Memory) {
+	var fontset = [...]uint8{
+		0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+		0x20, 0x60, 0x20, 0x20, 0x70, // 1
+		0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+		0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+		0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+		0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+		0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+		0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+		0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+		0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+		0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+		0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+		0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+		0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+		0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+		0xF0, 0x80, 0xF0, 0x80, 0x80, // F
+	}
+
+	for i := range fontset {
+		// do not user writebyte as we are writing to the part of memory that normal programs are not allowed to load to
+		mem.mem[uint16(FONTSTART+i)] = fontset[i]
+	}
 }

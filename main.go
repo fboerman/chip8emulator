@@ -18,11 +18,17 @@ func main() {
 	if err != nil {
 		fmt.Println("[!] Error when loading ROM: ", err)
 	}
+	chip8mem.LoadFonts(cpu.Mem)
 
 	fmt.Println("[>] Running video test")
-	chip8video.Test(cpu.Video)
+	// run test by first displaying F manually and then loading B from font
+	chip8video.Test(cpu.Video, 1, []uint8{})
 	chip8video.Render(cpu.Video)
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
+	sprite := chip8mem.LoadnBytes(cpu.Mem, chip8mem.FONTSTART+0xB*5, 5)
+	chip8video.Test(cpu.Video, 2, sprite)
+	chip8video.Render(cpu.Video)
+	time.Sleep(2 * time.Second)
 
 	//fmt.Println("[>] Starting CPU loop")
 	//for true {
