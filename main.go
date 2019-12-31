@@ -2,11 +2,11 @@ package main
 
 import (
 	"chip8cpu"
+	"chip8keyboard"
 	"chip8mem"
 	"chip8video"
 	"flag"
 	"fmt"
-	"github.com/veandco/go-sdl2/sdl"
 	"os"
 	"time"
 )
@@ -61,9 +61,8 @@ func main() {
 			chip8video.Render(cpu.Video)
 			cpu.Video.Dirty = false
 		}
-		// poll SDL to keep screen alive and not get timeouts by the OS
-		sdl.PollEvent()
-
+		// process the keyboard
+		chip8keyboard.Update(cpu.Keyboard)
 		// time between ticks
 		time.Sleep(time.Duration(*ticktime) * time.Millisecond)
 		//time.Sleep(16666 * time.Microsecond) // T=1/60=16 2/3 ms for 60Hz

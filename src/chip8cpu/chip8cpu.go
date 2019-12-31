@@ -1,6 +1,7 @@
 package chip8cpu
 
 import (
+	"chip8keyboard"
 	"chip8mem"
 	"chip8video"
 	"errors"
@@ -10,8 +11,9 @@ import (
 )
 
 type Cpu struct {
-	Mem   *chip8mem.Memory
-	Video *chip8video.Video
+	Mem      *chip8mem.Memory
+	Video    *chip8video.Video
+	Keyboard *chip8keyboard.Keyboard
 }
 
 // create new CPU, emtpy initialized
@@ -19,6 +21,7 @@ func CreateCpu() *Cpu {
 	cpu := new(Cpu)
 	cpu.Mem = chip8mem.CreateMem()
 	cpu.Video = chip8video.CreateVideo()
+	cpu.Keyboard = chip8keyboard.CreateKeyboard()
 
 	return cpu
 }
@@ -298,11 +301,36 @@ func Tick(cpu *Cpu) error {
 
 		cpu.Mem.PC += 2
 	case 0xE:
-		// SKP Vx
-		// Skip next instruction if key with the value of Vx is not pressed
+		functioncode := kk
 
-		// TBI
-		return errors.New(fmt.Sprintf("Instruction 0x(%X) has non implemented opcode 0x(%X)", instr, opcode))
+		Vx, err := chip8mem.GetReg(cpu.Mem, x)
+		if err != nil {
+			return err
+		}
+
+		switch functioncode {
+		case 0x9E:
+			// SKP Vx
+			// Skip next instruction if key with the value of Vx is pressed
+
+			if chip8keyboard.IsPressed(cpu.Keyboard, *Vx) {
+				cpu.Mem.PC += 4
+			} else {
+				cpu.Mem.PC += 2
+			}
+		case 0xA1:
+			// SKNP Vx
+			// Skip next instruction if key with the value of Vx is not pressed
+
+			if !chip8keyboard.IsPressed(cpu.Keyboard, *Vx) {
+				cpu.Mem.PC += 4
+			} else {
+				cpu.Mem.PC += 2
+			}
+		default:
+			return errors.New(fmt.Sprintf("Malformed instruction (0x%X), wrong functioncode (0x%X) with opcode (0x%X)", instr, functioncode, opcode)) // TODO: make this custom error type
+		}
+
 	case 0xF:
 		functioncode := kk
 
@@ -321,8 +349,7 @@ func Tick(cpu *Cpu) error {
 			// LD Vx, K
 			// Wait for a key press, store the value of the key in Vx
 
-			// TBI
-			return errors.New(fmt.Sprintf("Instruction 0x(%X) has non implemented opcode 0x(%X) and functioncode 0x(%X)", instr, opcode, functioncode))
+			*Vx = chip8keyboard.WaitforKey(cpu.Keyboard)
 		case 0x15:
 			// LD DT, Vx
 			// Set delay timer = Vx
