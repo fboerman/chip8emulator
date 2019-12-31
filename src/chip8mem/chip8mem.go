@@ -59,8 +59,26 @@ func LoadROM(mem *Memory, fname string) error {
 	return nil
 }
 
+func check_addr_write(mem *Memory, addr uint16) error {
+	if addr >= MEMSIZE || addr < MEMSTART {
+		return errors.New(fmt.Sprintf("Invalid address 0x(%X) to write to memory from instr at PC 0x(%X)", addr, mem.PC))
+	}
+	return nil
+}
+
+func check_addr_read(mem *Memory, addr uint16) error {
+	if addr >= MEMSIZE {
+		return errors.New(fmt.Sprintf("Invalid address 0x(%X) to write to memory from instr at PC 0x(%X)", addr, mem.PC))
+	}
+	return nil
+}
+
 // load n seperate bytes from memory
-func LoadnBytes(mem *Memory, addr uint16, n int) (data []uint8) {
+func LoadnBytes(mem *Memory, addr uint16, n int) (data []uint8, err error) {
+	if err = check_addr_read(mem, addr); err != nil {
+		return
+	}
+
 	for i := 0; i < n; i++ {
 		data = append(data, mem.mem[addr+uint16(i)])
 	}
@@ -69,13 +87,23 @@ func LoadnBytes(mem *Memory, addr uint16, n int) (data []uint8) {
 }
 
 // load 2 bytes from memory concatenated
-func LoadInstr(mem *Memory, addr uint16) uint16 {
-	return (uint16(mem.mem[addr]) << 8) | uint16(mem.mem[addr+1])
+func LoadInstr(mem *Memory, addr uint16) (data uint16, err error) {
+	if err = check_addr_read(mem, addr); err != nil {
+		return
+	}
+	data = (uint16(mem.mem[addr]) << 8) | uint16(mem.mem[addr+1])
+
+	return
 }
 
 // load 1 byte from memory
-func LoadByte(mem *Memory, addr uint16) uint8 {
-	return mem.mem[addr]
+func LoadByte(mem *Memory, addr uint16) (data uint8, err error) {
+	if err = check_addr_read(mem, addr); err != nil {
+		return
+	}
+	data = mem.mem[addr]
+
+	return
 }
 
 // pop address from the stack and adjust the stack pointer
@@ -116,13 +144,26 @@ func GetReg(mem *Memory, x uint8) (v *uint8, err error) {
 
 //write byte to address in memory
 func WriteByte(mem *Memory, addr uint16, byte uint8) error {
-	if addr >= MEMSIZE || addr < MEMSTART {
-		return errors.New(fmt.Sprintf("Invalid address 0x(%X) to write to memory", addr))
+	if err := check_addr_write(mem, addr); err != nil {
+		return err
 	}
-
 	mem.mem[addr] = byte
 
 	return nil
+}
+
+// shortcut for direct font
+func LoadFontSprite(mem *Memory, font uint8) (data []uint8) {
+	if font > 0xF {
+		return
+	}
+	addr := uint16(FONTSTART + font*5)
+
+	for i := 0; i < 5; i++ {
+		data = append(data, mem.mem[addr+uint16(i)])
+	}
+
+	return
 }
 
 // load the standard sprites for fonts

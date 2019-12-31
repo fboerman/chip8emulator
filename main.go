@@ -39,7 +39,7 @@ func main() {
 	chip8video.Test(cpu.Video, 1, []uint8{})
 	chip8video.Render(cpu.Video)
 	time.Sleep(1 * time.Second)
-	sprite := chip8mem.LoadnBytes(cpu.Mem, chip8mem.FONTSTART+0xB*5, 5)
+	sprite := chip8mem.LoadFontSprite(cpu.Mem, 0xB)
 	chip8video.Test(cpu.Video, 2, sprite)
 	chip8video.Render(cpu.Video)
 	time.Sleep(1 * time.Second)

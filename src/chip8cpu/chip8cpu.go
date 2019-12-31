@@ -36,7 +36,13 @@ func CreateCpu() *Cpu {
 //kk or byte - An 8-bit value, the lowest 8 bits of the instruction
 func Tick(cpu *Cpu) error {
 	// load current instruction and extract its upper 4 bits as opcode
-	var instr uint16 = chip8mem.LoadInstr(cpu.Mem, cpu.Mem.PC)
+	var instr uint16
+	var err error
+	instr, err = chip8mem.LoadInstr(cpu.Mem, cpu.Mem.PC)
+	if err != nil {
+		return errors.New("PC has run outside of memory")
+	}
+
 	var opcode uint8 = uint8(instr >> 12)
 
 	//select 12 lower bits (0xFFF = 0000 1111 1111 1111)
@@ -295,7 +301,10 @@ func Tick(cpu *Cpu) error {
 		if err != nil {
 			return err
 		}
-		sprite := chip8mem.LoadnBytes(cpu.Mem, cpu.Mem.I, int(n))
+		sprite, err := chip8mem.LoadnBytes(cpu.Mem, cpu.Mem.I, int(n))
+		if err != nil {
+			return err
+		}
 		VF, _ := chip8mem.GetReg(cpu.Mem, 0xF)
 		*VF = chip8video.DisplaySprite(cpu.Video, sprite, *Vx, *Vy)
 
@@ -429,7 +438,11 @@ func Tick(cpu *Cpu) error {
 
 			for i := 0; i < int(x)+1; i++ {
 				V, _ := chip8mem.GetReg(cpu.Mem, uint8(i))
-				*V = chip8mem.LoadByte(cpu.Mem, cpu.Mem.I+uint16(i))
+				data, err := chip8mem.LoadByte(cpu.Mem, cpu.Mem.I+uint16(i))
+				if err != nil {
+					return err
+				}
+				*V = data
 			}
 		}
 		cpu.Mem.PC += 2
@@ -449,6 +462,6 @@ func Tick(cpu *Cpu) error {
 }
 
 func DebugDump(cpu *Cpu) {
-	var instr uint16 = chip8mem.LoadInstr(cpu.Mem, cpu.Mem.PC)
+	instr, _ := chip8mem.LoadInstr(cpu.Mem, cpu.Mem.PC)
 	fmt.Printf("[d]: 0x%X \t 0x%X \n", cpu.Mem.PC, instr)
 }
